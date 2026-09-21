@@ -6,6 +6,20 @@ O projeto foi desenvolvido como parte de um projeto acadêmico de Engenharia da 
 
 ---
 
+## 📸 Demonstração do sistema
+
+### 🏠 Tela inicial
+
+![Tela inicial](imagens/sistema.png)
+
+### 🧾 Tela do Caixa
+
+![Tela do Caixa](imagens/caixa.png)
+
+### 👨‍🍳 Tela da Cozinha
+
+![Tela da Cozinha](imagens/cozinha.png)
+
  Sobre o projeto
 
 Antes do desenvolvimento do sistema, os pedidos eram comunicados entre o caixa e a cozinha de forma mais manual.
