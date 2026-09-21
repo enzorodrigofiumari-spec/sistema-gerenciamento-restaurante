@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Cozinha</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: Arial;
+      background-color: black;
+      color: white;
+      padding: 15px;
+      margin: 0;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    .pedido-card {
+      background-color: #111;
+      padding: 18px;
+      margin-bottom: 18px;
+      border-radius: 12px;
+      border: 4px solid #00c853;
+    }
+
+    .prioridade {
+      border: 4px solid red !important;
+      background-color: #330000;
+    }
+
+    .etiqueta-prioridade {
+      background: red;
+      color: white;
+      font-weight: bold;
+      padding: 4px 8px;
+      border-radius: 6px;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 12px;
+      cursor: pointer;
+      background-color: #00c853;
+      border: none;
+      color: black;
+      font-weight: bold;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    .tempo {
+      font-size: 18px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>🍳 Cozinha</h1>
+
+<div id="pedidos"></div>
+
+<audio id="alertaSom">
+  <source src="alerta.mp3" type="audio/mpeg">
+</audio>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+  getFirestore,
+  collection,
+  onSnapshot,
+  updateDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "SUA_API_KEY",
+  authDomain: "restaurante-enzo.firebaseapp.com",
+  projectId: "restaurante-enzo",
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const pedidosDiv = document.getElementById("pedidos");
+const pedidosRef = collection(db, "pedidos");
+
+let pedidosJaCarregados = new Set();
+
+onSnapshot(pedidosRef, (snapshot) => {
+
+  pedidosDiv.innerHTML = "";
+
+  let pedidos = [];
+
+  snapshot.forEach((docItem) => {
+
+    const data = docItem.data();
+
+    if (data.status === "novo") {
+
+      if (!pedidosJaCarregados.has(docItem.id)) {
+        tocarSom();
+        pedidosJaCarregados.add(docItem.id);
+      }
+
+      pedidos.push({
+        id: docItem.id,
+        ...data
+      });
+
+    }
+
+  });
+
+  pedidos.sort((a,b)=> (b.prioridade === true) - (a.prioridade === true));
+
+  pedidos.forEach((pedido)=>{
+
+    const div = document.createElement("div");
+    div.className = "pedido-card";
+
+    if(pedido.prioridade){
+      div.classList.add("prioridade");
+    }
+
+    let itensHtml = "";
+
+    pedido.itens.forEach(item => {
+
+      itensHtml += `
+        <p>
+          <strong>${item.nome}</strong> (x${item.quantidade})
+          <br>
+          <small>Tipo: ${item.tipo}</small>
+          ${item.obs ? "<br>Obs: " + item.obs : ""}
+        </p>
+      `;
+
+    });
+
+    div.innerHTML = `
+      ${pedido.prioridade ? '<div class="etiqueta-prioridade">🚨 PRIORIDADE</div>' : ""}
+      <h3>Pedido ${pedido.numero}</h3>
+      <p>Tempo: <span class="tempo" id="tempo-${pedido.id}">00:00</span></p>
+      ${itensHtml}
+      <button onclick="marcarPronto('${pedido.id}')">
+        ✅ Pronto
+      </button>
+    `;
+
+    pedidosDiv.appendChild(div);
+
+    iniciarContador(pedido.id, pedido.criadoEm?.seconds);
+
+  });
+
+});
+
+
+function iniciarContador(id, criadoEmSeconds){
+
+  if(!criadoEmSeconds) return;
+
+  const inicio = criadoEmSeconds * 1000;
+
+  setInterval(()=>{
+
+    const agora = Date.now();
+    const diff = Math.floor((agora - inicio)/1000);
+
+    const minutos = Math.floor(diff/60);
+    const segundos = diff % 60;
+
+    const tempoFormatado =
+      String(minutos).padStart(2,"0") + ":" +
+      String(segundos).padStart(2,"0");
+
+    const elemento = document.getElementById(`tempo-${id}`);
+
+    if(elemento){
+
+      elemento.textContent = tempoFormatado;
+
+      if(diff > 600){
+        elemento.style.color = "red";
+      }
+      else if(diff > 240){
+        elemento.style.color = "orange";
+      }
+      else{
+        elemento.style.color = "white";
+      }
+
+    }
+
+  },1000);
+
+}
+
+async function marcarPronto(id){
+
+  await updateDoc(doc(db,"pedidos",id),{
+    status:"pronto"
+  });
+
+}
+
+window.marcarPronto = marcarPronto;
+
+
+function tocarSom(){
+
+  const audio = document.getElementById("alertaSom");
+
+  audio.currentTime = 0;
+
+  audio.play().catch(()=>{});
+
+}
+
+
+document.body.addEventListener("click", ()=>{
+
+  const audio = document.getElementById("alertaSom");
+
+  audio.play().then(()=>{
+    audio.pause();
+    audio.currentTime = 0;
+  });
+
+},{once:true});
+
+</script>
+
+</body>
+</html>

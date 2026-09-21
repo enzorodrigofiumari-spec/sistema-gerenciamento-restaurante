@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Caixa</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+
+*{
+box-sizing:border-box;
+}
+
+body{
+margin:0;
+padding:12px;
+font-family:Arial, sans-serif;
+background:#f2f2f2;
+}
+
+h1,h2{
+text-align:center;
+}
+
+.produtos{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+gap:12px;
+margin-bottom:20px;
+}
+
+.produto-btn{
+background:white;
+border:none;
+border-radius:12px;
+padding:16px;
+font-size:16px;
+font-weight:bold;
+box-shadow:0 3px 6px rgba(0,0,0,0.1);
+cursor:pointer;
+}
+
+.produto-btn:active{
+transform:scale(0.95);
+}
+
+#pedido{
+margin-top:10px;
+}
+
+.item{
+background:white;
+padding:12px;
+border-radius:10px;
+margin-bottom:10px;
+box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+
+.item input{
+width:100%;
+padding:8px;
+margin-top:6px;
+border-radius:6px;
+border:1px solid #ccc;
+}
+
+.qtd-botoes{
+margin-top:8px;
+}
+
+.qtd-botoes button{
+font-size:18px;
+padding:4px 10px;
+margin:0 5px;
+border:none;
+border-radius:6px;
+background:#ddd;
+cursor:pointer;
+}
+
+.remover{
+color:red;
+font-weight:bold;
+display:block;
+margin-top:8px;
+cursor:pointer;
+}
+
+.enviar{
+width:100%;
+padding:16px;
+font-size:18px;
+font-weight:bold;
+border:none;
+border-radius:12px;
+background:#2e7d32;
+color:white;
+margin-top:15px;
+}
+
+.enviar:active{
+transform:scale(0.95);
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>Caixa</h1>
+
+<h2>Produtos</h2>
+
+<div class="produtos">
+
+<button class="produto-btn" onclick="adicionarItem('Parme de Mignon')">Parme de Mignon</button>
+<button class="produto-btn" onclick="adicionarItem('Sugestao do chefe')">Sugestao do chefe</button>
+<button class="produto-btn" onclick="adicionarItem('Grelhado com Requeijao')">Grelhado com Requeijao</button>
+<button class="produto-btn" onclick="adicionarItem('Parme de Grelhado')">Parme de Grelhado</button>
+<button class="produto-btn" onclick="adicionarItem('Grelhado com creme de milho')">Grelhado com creme de milho</button>
+<button class="produto-btn" onclick="adicionarItem('File a Paris')">File a Paris</button>
+<button class="produto-btn" onclick="adicionarItem('Virado a paulista')">Virado a paulista</button>
+<button class="produto-btn" onclick="adicionarItem('Estrogonofe de mignon')">Estrogonofe de mignon</button>
+<button class="produto-btn" onclick="adicionarItem('Espaguete alho e oleo')">Espaguete alho e oleo</button>
+<button class="produto-btn" onclick="adicionarItem('Milanesa com batata')">Milanesa com batata</button>
+<button class="produto-btn" onclick="adicionarItem('Baby beef')">Baby beef</button>
+<button class="produto-btn" onclick="adicionarItem('Estrogonofe de frango')">Estrogonofe de frango</button>
+<button class="produto-btn" onclick="adicionarItem('Fit')">Fit</button>
+<button class="produto-btn" onclick="adicionarItem('Combo de panqueca de carne')">Combo de panqueca de carne</button>
+<button class="produto-btn" onclick="adicionarItem('Combo de panqueca de frango')">Combo de panqueca de frango</button>
+<button class="produto-btn" onclick="adicionarItem('Combo de panqueca mista')">Combo de panqueca mista</button>
+<button class="produto-btn" onclick="adicionarItem('JK')">JK</button>
+<button class="produto-btn" onclick="adicionarItem('Parme de tilapia')">Parme de tilapia</button>
+<button class="produto-btn" onclick="adicionarItem('Bolonhesa')">Bolonhesa</button>
+
+</div>
+
+<h2>Pedido Atual</h2>
+
+<div id="pedido"></div>
+
+<button class="enviar" onclick="enviarPedido()">Enviar Pedido</button>
+
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+
+import {
+getFirestore,
+collection,
+addDoc,
+serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+
+const firebaseConfig = {
+apiKey: "AIzaSyC5oWCB6qnaYHMtGG10y4P7MA6IA_d0MhY",
+authDomain: "restaurante-enzo.firebaseapp.com",
+projectId: "restaurante-enzo",
+};
+
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+
+let pedidoAtual = [];
+
+
+function adicionarItem(nome){
+
+let tipo = prompt(
+"Selecione o tipo:\n\n1 - Balcão\n2 - Entrega\n3 - Entrega Parceira"
+);
+
+let tipoTexto="";
+let prioridade=false;
+
+
+if(tipo==="1"){
+tipoTexto="Balcão";
+prioridade=true;
+}
+else if(tipo==="2"){
+tipoTexto="Entrega";
+}
+else if(tipo==="3"){
+tipoTexto="Entrega Parceira";
+prioridade=true;
+}
+else{
+alert("Opção inválida!");
+return;
+}
+
+
+pedidoAtual.push({
+nome:nome,
+quantidade:1,
+obs:"",
+tipo:tipoTexto,
+prioridade:prioridade
+});
+
+atualizarTela();
+
+}
+
+
+function atualizarTela(){
+
+const div=document.getElementById("pedido");
+
+div.innerHTML="";
+
+
+pedidoAtual.forEach((item,index)=>{
+
+let prioridadeTexto=item.prioridade ? " 🔴 PRIORIDADE" : "";
+
+const itemDiv=document.createElement("div");
+
+itemDiv.className="item";
+
+
+itemDiv.innerHTML=`
+
+<strong>${item.nome}</strong>
+
+<div class="qtd-botoes">
+
+<button onclick="diminuirQtd(${index})">➖</button>
+
+<strong>${item.quantidade}</strong>
+
+<button onclick="aumentarQtd(${index})">➕</button>
+
+</div>
+
+<b>Tipo:</b> ${item.tipo}${prioridadeTexto}<br>
+
+Obs:
+
+<input type="text"
+
+value="${item.obs}"
+
+onchange="atualizarObs(${index}, this.value)">
+
+<span class="remover"
+
+onclick="removerItem(${index})">
+
+Remover
+
+</span>
+
+`;
+
+
+div.appendChild(itemDiv);
+
+});
+
+}
+
+
+function aumentarQtd(index){
+
+pedidoAtual[index].quantidade++;
+
+atualizarTela();
+
+}
+
+
+function diminuirQtd(index){
+
+if(pedidoAtual[index].quantidade>1){
+
+pedidoAtual[index].quantidade--;
+
+}
+else{
+
+pedidoAtual.splice(index,1);
+
+}
+
+atualizarTela();
+
+}
+
+
+function atualizarObs(index,valor){
+
+pedidoAtual[index].obs=valor;
+
+}
+
+
+function removerItem(index){
+
+pedidoAtual.splice(index,1);
+
+atualizarTela();
+
+}
+
+
+async function enviarPedido(){
+
+if(pedidoAtual.length===0){
+
+alert("Adicione pelo menos um item!");
+
+return;
+
+}
+
+
+const temPrioridade = pedidoAtual.some(item=>item.prioridade);
+
+
+await addDoc(collection(db,"pedidos"),{
+
+numero:Date.now(),
+itens:pedidoAtual,
+prioridade:temPrioridade,
+status:"novo",
+criadoEm:serverTimestamp()
+
+});
+
+
+pedidoAtual=[];
+
+atualizarTela();
+
+alert("Pedido enviado!");
+
+}
+
+
+window.adicionarItem=adicionarItem;
+window.removerItem=removerItem;
+window.atualizarObs=atualizarObs;
+window.enviarPedido=enviarPedido;
+window.aumentarQtd=aumentarQtd;
+window.diminuirQtd=diminuirQtd;
+
+</script>
+
+</body>
+</html>
